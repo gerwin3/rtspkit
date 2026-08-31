@@ -1,0 +1,15 @@
+.zig-cache/
+zig-out/
+/release/
+/debug/
+/build/
+/build-*/
+/docgen_tmp/
+zig-cache/
+*.264
+*.h264
+*.265
+*.h265
+*.hevc
+*.av1
+*.mp4
