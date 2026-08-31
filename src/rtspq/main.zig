@@ -124,13 +124,20 @@ fn run(
         .csv => {},
     }
 
+    var item0 = true;
+
     for (0.., tasks.items) |index, *task| {
         if (task.out) |*info| {
-            const last = index == tasks.items.len - 1;
+            if (!item0) switch (output_mode) {
+                .table => try write_table_row_sep(stdout),
+                .json => try write_json_sep(stdout),
+                .csv => try write_csv_row_sep(stdout),
+            };
+            item0 = false;
             switch (output_mode) {
-                .table => try write_item_table_row(arena, index, info, stdout, table_col_widths.profile, last),
-                .json => try write_item_json(index, info, stdout, last),
-                .csv => try write_item_csv(index, info, stdout, last),
+                .table => try write_table_row_item(arena, index, info, stdout, table_col_widths.profile),
+                .json => try write_json_item(index, info, stdout),
+                .csv => try write_csv_item(index, info, stdout),
             }
         } else |err| {
             try stderr.print("Error on stream {d}: {s}\n", .{ index, get_error_detail(err) });
@@ -169,13 +176,12 @@ fn write_table_header(
     try writer.writeByte('\n');
 }
 
-fn write_item_table_row(
+fn write_table_row_item(
     arena: std.mem.Allocator,
     index: usize,
     info: *const Info,
     writer: *std.Io.Writer,
     profile_col_width: usize,
-    last: bool,
 ) std.Io.Writer.Error!void {
     const row = table_row(arena, profile_col_width);
     _ = std.fmt.bufPrint(row.cols[0], "{d}", .{index}) catch @panic("table row overflow");
@@ -185,7 +191,10 @@ fn write_item_table_row(
     _ = std.fmt.bufPrint(row.cols[4], "{d}", .{info.dimensions.height}) catch @panic("table row overflow");
     if (info.frame_rate_f32()) |frame_rate| _ = std.fmt.bufPrint(row.cols[5], "{d:.2}", .{frame_rate}) catch @panic("table row overflow");
     try writer.writeAll(row.buffer);
-    if (!last) try writer.writeByte('\n');
+}
+
+fn write_table_row_sep(writer: *std.Io.Writer) std.Io.Writer.Error!void {
+    try writer.writeByte('\n');
 }
 
 fn table_row(arena: std.mem.Allocator, profile_col_width: usize) struct { buffer: []const u8, cols: [6][]u8 } {
@@ -205,25 +214,26 @@ fn table_row(arena: std.mem.Allocator, profile_col_width: usize) struct { buffer
     return .{ .buffer = buffer, .cols = cols };
 }
 
-fn write_item_csv(
+fn write_csv_item(
     index: usize,
     info: *const Info,
     writer: *std.Io.Writer,
-    last: bool,
 ) std.Io.Writer.Error!void {
     try writer.print("{d}", .{index});
     try writer.print(",{s}", .{@tagName(info.codec)});
     try writer.print(",{s}", .{info.profile});
     try writer.print(",{d},{d},", .{ info.dimensions.width, info.dimensions.height });
     if (info.frame_rate_f32()) |frame_rate| try writer.print("{d:.2}", .{frame_rate});
-    if (!last) try writer.writeByte('\n');
 }
 
-fn write_item_json(
+fn write_csv_row_sep(writer: *std.Io.Writer) std.Io.Writer.Error!void {
+    try writer.writeByte('\n');
+}
+
+fn write_json_item(
     index: usize,
     info: *const Info,
     writer: *std.Io.Writer,
-    last: bool,
 ) std.Io.Writer.Error!void {
     try writer.writeAll("{");
     try writer.print("\"index\": \"{d}\"", .{index});
@@ -232,7 +242,10 @@ fn write_item_json(
     try writer.print(",\"width\": {d},\"height\": {d}", .{ info.dimensions.width, info.dimensions.height });
     if (info.frame_rate_f32()) |frame_rate| try writer.print(",\"frame_rate\": {d:.2}", .{frame_rate});
     try writer.writeAll("}");
-    if (!last) try writer.writeByte(',');
+}
+
+fn write_json_sep(writer: *std.Io.Writer) std.Io.Writer.Error!void {
+    try writer.writeByte(',');
 }
 
 fn get_error_detail(err: Task.Error) []const u8 {
