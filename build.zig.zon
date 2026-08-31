@@ -1,6 +1,6 @@
 .{
     .name = .rtspkit,
-    .version = "0.0.0",
+    .version = "0.0.1",
     .fingerprint = 0x4b02a22f04fa7a9,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{},
