@@ -27,12 +27,7 @@
           (final: prev: { zigpkgs = inputs.zig.packages.${prev.stdenv.hostPlatform.system}; })
           (final: prev: { zlspkgs = inputs.zls.packages.${prev.stdenv.hostPlatform.system}; })
         ];
-
-        pkgs = import nixpkgs {
-          inherit overlays system;
-          config.allowUnfree = true;
-          config.cudaSupport = true;
-        };
+        pkgs = import nixpkgs { inherit overlays system; };
       in
       {
         devShells.default = pkgs.mkShell.override { stdenv = pkgs.clangStdenv; } {
@@ -40,15 +35,6 @@
             zigpkgs.default
             zls
           ];
-
-          # This is the equivalent of addDriverRunpath for dev shell. In a Nix
-          # build we would use addDriverRunpath to patch the binary rpath to
-          # load the driver libraries. In a devshell we do not have access to
-          # the binary so we just add the driver library path to
-          # LD_LIBRARY_PATH.
-          shellHook = ''
-            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/run/opengl-driver/lib/";
-          '';
         };
       }
     );
