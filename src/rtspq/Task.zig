@@ -21,15 +21,33 @@ out: Error!Info = undefined,
 pub const Error = error{
     InvalidScheme,
     InsufficientInfo,
+    Timeout,
     Overflow,
 } || std.Uri.ParseError || std.Io.net.HostName.ValidateError || std.Io.net.HostName.ConnectError || rtsp.Stream.SetupError || rtsp.Stream.ReceiveError || rtsp.Stream.DepacketizeError;
 
+const RunSelect = union(enum) {
+    run: Error!Info,
+    timeout: void,
+};
+
 pub fn run(self: *Task, io: std.Io, arena: std.mem.Allocator) std.Io.Cancelable!void {
-    if (self.run_impl(io, arena)) |info| {
-        self.out = info;
-    } else |err| switch (err) {
-        error.Canceled => return error.Canceled,
-        else => self.out = err,
+    var select_buffer: [2]RunSelect = undefined;
+    var select: std.Io.Select(RunSelect) = .init(io, &select_buffer);
+    defer select.cancelDiscard();
+
+    select.concurrent(.run, Task.run_impl, .{ self, io, arena }) catch unreachable;
+    select.concurrent(.timeout, timeout, .{ io, std.Io.Duration.fromSeconds(20) }) catch unreachable;
+
+    switch (try select.await()) {
+        .run => |run_impl_out| {
+            if (run_impl_out) |info| {
+                self.out = info;
+            } else |err| switch (err) {
+                error.Canceled => return error.Canceled,
+                else => self.out = err,
+            }
+        },
+        .timeout => self.out = Error.Timeout,
     }
 }
 
@@ -40,11 +58,7 @@ fn run_impl(self: *Task, io: std.Io, arena: std.mem.Allocator) Error!Info {
 
     var target: Target = try .parse(arena, self.uri, .{});
 
-    const stream = try target.host.connect(
-        io,
-        target.port,
-        .{ .mode = .stream, .protocol = .tcp },
-    );
+    const stream = try target.host.connect(io, target.port, .{ .mode = .stream, .protocol = .tcp });
     defer stream.close(io);
 
     const stream_reader_buffer = arena.alloc(u8, 64 * 1024) catch @panic("oom");
@@ -108,4 +122,8 @@ fn run_impl(self: *Task, io: std.Io, arena: std.mem.Allocator) Error!Info {
         .dimensions = info_collector.dimensions.?,
         .frame_rate = info_collector.frame_rate,
     } else Error.InsufficientInfo;
+}
+
+inline fn timeout(io: std.Io, duration: std.Io.Duration) void {
+    io.sleep(duration, .awake) catch {};
 }
