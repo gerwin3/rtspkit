@@ -7,9 +7,9 @@ pub const ResponseReader = @This();
 
 reader: *std.Io.Reader,
 
-max_head_len: usize = 4096,
-max_message_len: usize = 64 * 1024,
-max_interleaved_size: usize = 64 * 1024,
+max_head_len: usize = 8 * 1024,
+max_message_len: usize = 256 * 1024,
+max_interleaved_size: usize = 256 * 1024,
 
 pub const Error = error{Overflow} || Response.Head.ParseError || std.Io.Reader.Error;
 
