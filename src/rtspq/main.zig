@@ -296,6 +296,7 @@ fn get_error_detail(err: Task.Error) []const u8 {
         rtsp.Stream.SetupError.UnsupportedTransport => "The stream is of a codec or format that is not supported. Only H.264 and H.265 are supported.",
         rtsp.Stream.SetupError.MalformedTransport => "The stream presented an invalid transport header. The camera is not compliant.",
         rtsp.Stream.ReceiveError.InvalidRtpPacket => "The peer sent an invalid RTP packet. The camera is buggy.",
+        rtsp.Stream.DepacketizeError.MalformedNalu => "The peer sent an invalid or unsupported NALU.",
         rtsp.Session.RequestError.ResponseStatusCode => "The stream returned an RTSP error status code.",
         rtsp.Session.RequestError.ResponseCSeqMissing => "Invalid RTSP response: The response is missing the CSeq header. The camera is not compliant.",
         rtsp.Session.RequestError.ResponseCSeqIncorrect => "Invalid RTSP response: The response contains an invalid CSeq header value. The camera is not compliant.",

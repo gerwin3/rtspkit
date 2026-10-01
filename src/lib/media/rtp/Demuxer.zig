@@ -41,7 +41,7 @@ pub fn feed(self: *Demuxer, diagnostics: Diagnostics, packet_data: []const u8) F
 }
 
 pub const DemuxError = error{
-    InvalidRtpPacket,
+    MalformedNalu,
     UnexpectedRtpFragment,
     UnsupportedRtpPacketType,
     Overflow,
@@ -57,7 +57,7 @@ pub fn demux(self: *Demuxer, diagnostics: Diagnostics) DemuxError!?Nalu {
         .h264 => |*depacketizer| self.depacketize_h26x(diagnostics, H264Depacketizer, depacketizer),
         .h265 => |*depacketizer| self.depacketize_h26x(diagnostics, H265Depacketizer, depacketizer),
     } catch |err| switch (err) {
-        error.Malformed => DemuxError.InvalidRtpPacket,
+        error.Malformed => DemuxError.MalformedNalu,
         error.Unexpected => DemuxError.UnexpectedRtpFragment,
         error.Unsupported => DemuxError.UnsupportedRtpPacketType,
         error.Overflow => DemuxError.Overflow,
