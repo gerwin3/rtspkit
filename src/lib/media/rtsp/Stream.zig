@@ -140,8 +140,14 @@ pub fn setup(self: *Stream, io: std.Io, diagnostics: Diagnostics) SetupError!voi
     if (media.format_parameters) |format_parameters| {
         const params = format_parameters.parameter_sets;
         switch (media.codec) {
-            .h264 => self.parameter_sets = try .parse_h264_base64(params.sps, params.pps),
-            .h265 => self.parameter_sets = try .parse_h265_base64(params.vps, params.sps, params.pps),
+            .h264 => self.parameter_sets = ParameterSets.parse_h264_base64(params.sps, params.pps) catch |err| blk: {
+                diagnostics.report(.warn, err, "Failed to parse H.264 parameter sets from format parameters.", .{});
+                break :blk null;
+            },
+            .h265 => self.parameter_sets = ParameterSets.parse_h265_base64(params.vps, params.sps, params.pps) catch |err| blk: {
+                diagnostics.report(.warn, err, "Failed to parse H.265 parameter sets from format parameters.", .{});
+                break :blk null;
+            },
         }
     }
 
