@@ -108,7 +108,7 @@ fn run_impl(self: *Task, io: std.Io, arena: std.mem.Allocator) Error!Info {
     while (probe_count < probe_iters_max) {
         if (info_collector.have_all_info()) break; // Break out if we have all information.
         try rtsp_stream.receive(io, diagnostics);
-        while (demux(&rtsp_stream, diagnostics)) |nalu| {
+        while (try rtsp_stream.demux(diagnostics)) |nalu| {
             const demuxer = &rtsp_stream.rtp_demuxer.?;
             const time = (demuxer.time *| 1_000_000_000) / demuxer.clock_rate;
             info_collector.feed(time, &nalu);
@@ -123,13 +123,6 @@ fn run_impl(self: *Task, io: std.Io, arena: std.mem.Allocator) Error!Info {
         .dimensions = info_collector.dimensions.?,
         .frame_rate = info_collector.frame_rate,
     } else Error.InsufficientInfo;
-}
-
-inline fn demux(rtsp_stream: *rtsp.Stream, diagnostics: Diagnostics) ?Nalu {
-    return rtsp_stream.demux(diagnostics) catch |err| blk: {
-        diagnostics.report(.warn, err, "Failed to demux NALU. The NALU was ignored.", .{});
-        break :blk null;
-    };
 }
 
 inline fn timeout(io: std.Io, duration: std.Io.Duration) void {
