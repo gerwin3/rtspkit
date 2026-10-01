@@ -192,20 +192,27 @@ pub const SPS = struct {
             try reader.skipBit();
         }
 
+        var try_for_parsing_vui = false;
+        var vui: ?VUI = null;
+
         const num_short_term_ref_pic_sets = try reader.readExpGolomb();
-        // FIXME: Parsing short term ref pic sets if complicated so not implemented for now.
-        if (num_short_term_ref_pic_sets > 0) return ParseError.Unsupported;
+        // FIXME: Parsing short term ref pic sets is very complicated. For now
+        // we only continue parsing to VUI if there are none, otherwise we bail
+        // out and skip parsing up to VUI altogether.
+        if (num_short_term_ref_pic_sets == 0) try_for_parsing_vui = true;
 
-        const long_term_ref_pics_present_flags = try reader.readBit() == 1;
-        if (long_term_ref_pics_present_flags) {
-            const num_long_term_ref_pics = @min(32, try reader.readExpGolomb());
-            for (0..num_long_term_ref_pics) |_| try reader.skipBits(4 +| log2_max_pic_order_cnt_lsb_minus4 +| 1);
+        if (try_for_parsing_vui) {
+            const long_term_ref_pics_present_flags = try reader.readBit() == 1;
+            if (long_term_ref_pics_present_flags) {
+                const num_long_term_ref_pics = @min(32, try reader.readExpGolomb());
+                for (0..num_long_term_ref_pics) |_| try reader.skipBits(4 +| log2_max_pic_order_cnt_lsb_minus4 +| 1);
+            }
+
+            try reader.skipBits(2);
+
+            const vui_present_flag = try reader.readBit() == 1;
+            vui = if (vui_present_flag) try VUI.parse(reader) else null;
         }
-
-        try reader.skipBits(2);
-
-        const vui_present_flag = try reader.readBit() == 1;
-        const vui: ?VUI = if (vui_present_flag) try VUI.parse(reader) else null;
 
         return .{
             .video_parameter_set_id = video_parameter_set_id,
