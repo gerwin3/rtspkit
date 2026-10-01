@@ -192,7 +192,9 @@ pub const SPS = struct {
             try reader.skipBit();
         }
 
-        try reader.skipExpGolomb();
+        const num_short_term_ref_pic_sets = try reader.readExpGolomb();
+        // FIXME: Parsing short term ref pic sets if complicated so not implemented for now.
+        if (num_short_term_ref_pic_sets > 0) return ParseError.Unsupported;
 
         const long_term_ref_pics_present_flags = try reader.readBit() == 1;
         if (long_term_ref_pics_present_flags) {
