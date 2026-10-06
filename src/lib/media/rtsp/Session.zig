@@ -150,6 +150,18 @@ pub fn play(self: *Session, io: std.Io, diagnostics: Diagnostics, target: []cons
     try self.request_impl(io, diagnostics, &request, response);
 }
 
+/// GET_PARAMETERS request without body.
+pub fn get_parameter(self: *Session, io: std.Io, diagnostics: Diagnostics, target: []const u8, response: *Response) RequestError!void {
+    var request = Request{
+        .method = .get_parameter,
+        .target = target,
+        .session = self.state.id orelse return RequestError.NoSession,
+        .cseq = undefined,
+        .user_agent = undefined,
+    };
+    try self.request_impl(io, diagnostics, &request, response);
+}
+
 /// TEARDOWN request.
 pub fn teardown(self: *Session, io: std.Io, diagnostics: Diagnostics, target: []const u8, response: *Response) RequestError!void {
     var request = Request{

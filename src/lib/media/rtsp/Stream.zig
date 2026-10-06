@@ -228,7 +228,11 @@ fn keep_alive(self: *Stream, io: std.Io, diagnostics: Diagnostics) rtsp.Session.
     const elapsed = self.ping.?.untilNow(io, std.Io.Clock.real).toSeconds();
     if ((elapsed -| 10) >= timeout) {
         var response: rtsp.Response = undefined;
-        _ = try self.rtsp_session.options(io, diagnostics, self.request_uri, &response);
+        if (self.rtsp_session.state.id != null) {
+            _ = try self.rtsp_session.get_parameter(io, diagnostics, self.request_uri, &response);
+        } else {
+            _ = try self.rtsp_session.options(io, diagnostics, self.request_uri, &response);
+        }
 
         self.ping = std.Io.Clock.real.now(io);
     }
