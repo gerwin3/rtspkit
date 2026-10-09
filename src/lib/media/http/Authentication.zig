@@ -508,7 +508,7 @@ pub const digest = struct {
 
     pub const Authorizer = struct {
         cnonce: ?[32]u8,
-        nonce_count: u32 = 0,
+        nonce_count: u32 = 1,
 
         /// Initialize DigestAuth based on initial challenge.
         pub fn init(io: std.Io, challenge: *const Challenge) Authorizer {
@@ -518,7 +518,7 @@ pub const digest = struct {
                 challenge.qop_options.@"auth-int";
             const cnonce: ?[32]u8 = if (cnonce_required) generate_cnonce(io) else null;
 
-            return Authorizer{ .cnonce = cnonce, .nonce_count = 0 };
+            return Authorizer{ .cnonce = cnonce, .nonce_count = 1 };
         }
 
         /// Authorize a request.
