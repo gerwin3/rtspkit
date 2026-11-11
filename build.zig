@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
 
     // stdx lib
 
-    const stdx_lib = b.createModule(.{
+    const stdx_lib = b.addModule("stdx", .{
         .root_source_file = b.path("src/lib/stdx/root.zig"),
         .target = target,
         .optimize = optimize,
@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
 
     // media lib
 
-    const media_lib = b.createModule(.{
+    const media_lib = b.addModule("media", .{
         .root_source_file = b.path("src/lib/media/root.zig"),
         .target = target,
         .optimize = optimize,
