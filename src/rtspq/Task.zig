@@ -96,8 +96,8 @@ fn run_impl(self: *Task, io: std.Io, arena: std.mem.Allocator) Error!Info {
     if (rtsp_stream.parameter_sets) |parameter_sets| {
         info_collector.codec = std.meta.activeTag(parameter_sets);
         switch (parameter_sets) {
-            .h264 => |params| if (params.sps) |*sps| info_collector.feed_h264_sps(sps),
-            .h265 => |params| if (params.sps) |*sps| info_collector.feed_h265_sps(sps),
+            .h264 => |params| if (params.sps) |*sps| info_collector.feed_h264_sps(&sps.header.h264.nal_unit.sps),
+            .h265 => |params| if (params.sps) |*sps| info_collector.feed_h265_sps(&sps.header.h265.nal_unit.sps),
         }
     }
 

@@ -41,6 +41,10 @@ ping: ?std.Io.Timestamp,
 track_control_uri_buffer: []u8,
 aggregate_control_uri_buffer: []u8,
 
+vps_buffer: []u8,
+sps_buffer: []u8,
+pps_buffer: []u8,
+
 defragmentation_buffer: []u8,
 
 pub fn init(
@@ -56,6 +60,7 @@ pub fn init(
         auth_response_buffer_len: usize = 4096,
         auth_challenge_buffer_len: usize = 4096,
         control_uri_buffer_len: usize = 4096,
+        parameter_set_buffer_len: usize = 1024,
         defragmentation_buffer_len: usize = 32 * 1024 * 1024,
     },
 ) std.mem.Allocator.Error!Stream {
@@ -77,6 +82,14 @@ pub fn init(
     errdefer gpa.free(track_control_uri_buffer);
     const aggregate_control_uri_buffer = try gpa.alloc(u8, opts.control_uri_buffer_len);
     errdefer gpa.free(aggregate_control_uri_buffer);
+
+    const vps_buffer = try gpa.alloc(u8, opts.parameter_set_buffer_len);
+    errdefer gpa.free(vps_buffer);
+    const sps_buffer = try gpa.alloc(u8, opts.parameter_set_buffer_len);
+    errdefer gpa.free(sps_buffer);
+    const pps_buffer = try gpa.alloc(u8, opts.parameter_set_buffer_len);
+    errdefer gpa.free(pps_buffer);
+
     const defragmentation_buffer = try gpa.alloc(u8, opts.defragmentation_buffer_len);
     errdefer gpa.free(defragmentation_buffer);
 
@@ -88,6 +101,9 @@ pub fn init(
         .ping = null,
         .track_control_uri_buffer = track_control_uri_buffer,
         .aggregate_control_uri_buffer = aggregate_control_uri_buffer,
+        .vps_buffer = vps_buffer,
+        .sps_buffer = sps_buffer,
+        .pps_buffer = pps_buffer,
         .defragmentation_buffer = defragmentation_buffer,
     };
 }
@@ -95,6 +111,9 @@ pub fn init(
 pub fn deinit(self: *Stream, gpa: std.mem.Allocator) void {
     gpa.free(self.track_control_uri_buffer);
     gpa.free(self.aggregate_control_uri_buffer);
+    gpa.free(self.vps_buffer);
+    gpa.free(self.sps_buffer);
+    gpa.free(self.pps_buffer);
     gpa.free(self.defragmentation_buffer);
     self.rtsp_session.deinit(gpa);
 }
@@ -105,6 +124,9 @@ pub fn reset(self: *Stream) void {
     self.rtp_demuxer = null;
     @memset(self.track_control_uri_buffer, 0);
     @memset(self.aggregate_control_uri_buffer, 0);
+    @memset(self.vps_buffer, 0);
+    @memset(self.sps_buffer, 0);
+    @memset(self.pps_buffer, 0);
     @memset(self.defragmentation_buffer, 0);
 }
 
@@ -140,11 +162,11 @@ pub fn setup(self: *Stream, io: std.Io, diagnostics: Diagnostics) SetupError!voi
     if (media.format_parameters) |format_parameters| {
         const params = format_parameters.parameter_sets;
         switch (media.codec) {
-            .h264 => self.parameter_sets = ParameterSets.parse_h264_base64(params.sps, params.pps) catch |err| blk: {
+            .h264 => self.parameter_sets = ParameterSets.parse_h264_base64(params.sps, self.sps_buffer, params.pps, self.pps_buffer) catch |err| blk: {
                 diagnostics.report(.warn, err, "Failed to parse H.264 parameter sets from format parameters.", .{});
                 break :blk null;
             },
-            .h265 => self.parameter_sets = ParameterSets.parse_h265_base64(params.vps, params.sps, params.pps) catch |err| blk: {
+            .h265 => self.parameter_sets = ParameterSets.parse_h265_base64(params.vps, self.vps_buffer, params.sps, self.sps_buffer, params.pps, self.pps_buffer) catch |err| blk: {
                 diagnostics.report(.warn, err, "Failed to parse H.265 parameter sets from format parameters.", .{});
                 break :blk null;
             },
