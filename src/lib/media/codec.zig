@@ -39,25 +39,13 @@ pub const ParameterSets = union(Codec) {
 
     pub const ParseBase64Error = ParseError || ParseParameterSetBase64Error;
 
-    pub fn parse_h264_base64(
-        sps_base64_opt: ?[]const u8,
-        sps_buffer: []u8,
-        pps_base64_opt: ?[]const u8,
-        pps_buffer: []u8,
-    ) ParseBase64Error!ParameterSets {
+    pub fn parse_h264_base64(sps_base64_opt: ?[]const u8, sps_buffer: []u8, pps_base64_opt: ?[]const u8, pps_buffer: []u8) ParseBase64Error!ParameterSets {
         const sps = if (sps_base64_opt) |sps_base64| (Nalu.parse_h264_sps(try parse_base64(sps_base64, sps_buffer)) catch return ParseError.InvalidSPS) else null;
         const pps = if (pps_base64_opt) |pps_base64| (Nalu.parse_h264_pps(try parse_base64(pps_base64, pps_buffer)) catch return ParseError.InvalidPPS) else null;
         return .{ .h264 = .{ .sps = sps, .pps = pps } };
     }
 
-    pub fn parse_h265_base64(
-        vps_base64_opt: ?[]const u8,
-        vps_buffer: []u8,
-        sps_base64_opt: ?[]const u8,
-        sps_buffer: []u8,
-        pps_base64_opt: ?[]const u8,
-        pps_buffer: []u8,
-    ) ParseBase64Error!ParameterSets {
+    pub fn parse_h265_base64(vps_base64_opt: ?[]const u8, vps_buffer: []u8, sps_base64_opt: ?[]const u8, sps_buffer: []u8, pps_base64_opt: ?[]const u8, pps_buffer: []u8) ParseBase64Error!ParameterSets {
         const vps = if (vps_base64_opt) |vps_base64| (Nalu.parse_h265_vps(try parse_base64(vps_base64, vps_buffer)) catch return ParseError.InvalidVPS) else null;
         const sps = if (sps_base64_opt) |sps_base64| (Nalu.parse_h265_sps(try parse_base64(sps_base64, sps_buffer)) catch return ParseError.InvalidSPS) else null;
         const pps = if (pps_base64_opt) |pps_base64| (Nalu.parse_h265_pps(try parse_base64(pps_base64, pps_buffer)) catch return ParseError.InvalidPPS) else null;
